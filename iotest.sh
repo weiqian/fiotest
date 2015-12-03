@@ -32,17 +32,20 @@ function fire_jobs()
 function prepare_env()
 {
   local func="prepare_env"
-
-  if [ ! -f $vm_hosts ]
+  
+  if [ -z "$vm_hosts" ]
   then
-    cat /etc/hosts | awk '{ print $2 }'  | sed -e '/^$/d' | sed -e '/localhost/d' >$vm_hosts
+    echo "$func: $vm_hosts not found! Please exec update.sh first!"
+    exit 1
   fi
 
   for host in `cat $vm_hosts`
   do
   {
-    cmd="hostname $host; rm -rf ${job_path}.backup; test -d $job_path && mv $job_path ${job_path}.backup; mkdir -p $job_path"
-    ssh $ssh_option $host $cmd
+    cmd1="hostname $host; rm -rf ${job_path}.backup; test -d $job_path && mv $job_path ${job_path}.backup; mkdir -p $job_path"
+    cmd2="test -z $(which fio) && yum -y install fio"
+    ssh $ssh_option $host $cmd1
+    ssh $ssh_option $host $cmd2
     scp -r $ssh_option $testcases $host:$job_path  >/dev/null
     scp $ssh_option $file1 $host:$job_path  >/dev/null
     scp $ssh_option $file2 $host:$job_path  >/dev/null
